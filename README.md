@@ -10,43 +10,43 @@ To speed up the download of Linux updates, apt-update etc. - replace all â€˜gb.â
 sudo nano /etc/apt/sources.list
 
 If required - TEMP Proxy Access: Once VM is rebooted Proxy will no longer function.
-
+```
 sudo export http_proxy='http://DOMAIN\username:password@proxy:port'
 sudo export https_proxy='https://DOMAIN\username:password@proxy:port'
-
+```
 Follow: https://support.pexip.com/hc/en-us/articles/203598109-RP-TURN-updates-and-housekeeping
 
 SSH into the RP
 
 Install virtual environment for the Flask app:
-
+```
 sudo apt-get install python-pip python-dev
 
 sudo pip install virtualenv
-
+```
 Create a folder for the policy:
-
+```
 mkdir ~/policy
 cd ~/policy
-
+```
 Create virtual environment for the policy:
 
-virtualenv policyenv
+`virtualenv policyenv`
 
 Activate the virtual environment:
 
-source policyenv/bin/activate
+`source policyenv/bin/activate`
 
 Install the bits we need to run this example:
-
+```
 pip install uwsgi flask netaddr
-
+```
 Create subnet list file:
-
+```
 nano subnets.py
-
+```
 Be sure to include the none_list as it is below:
-
+```python
 mel_list = {
     '10.61.0.0/23',
     '192.168.10.0/24'
@@ -57,7 +57,7 @@ syd_list = {
 none_list = {
   '1.1.1.1/32'
 }
-
+```
 Create your policy file:
 
 nano policy.py

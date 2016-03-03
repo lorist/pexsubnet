@@ -3,11 +3,14 @@ Notes include the nginx config (added to the pexapp file) and everything we need
 Cheers,
 Dennis
 
-Deploy Pexip RP/TURN OVA
+#### Deploy Pexip RP/TURN OVA
 
-To speed up the download of Linux updates, apt-update etc. - replace all ‘gb.’ in the the /etc/apt/sources.list file with ‘au.’ - replace ‘gb.' with closest geo location.
 
+To speed up the download of Linux updates for local, apt-update etc. - replace all ‘gb.’ in the the /etc/apt/sources.list file with ‘au.’ - replace ‘gb.' with closest geo location.
+
+```
 sudo nano /etc/apt/sources.list
+```
 
 If required - TEMP Proxy Access: Once VM is rebooted Proxy will no longer function.
 ```
@@ -161,21 +164,22 @@ if __name__  ==  '__main__':
 ```
 To test that the app starts, allow port 5000 (for test) and 8443 (for production) in iptables:
 
+```
 sudo nano /etc/iptables/rules.v4
-
+```
 Add:
-
+```
 -A INPUT -p tcp -m conntrack --ctstate NEW -m tcp --dport 5000 -j ACCEPT
 -A INPUT -p tcp -m conntrack --ctstate NEW -m tcp --dport 8443 -j ACCEPT
-
+```
 Reload iptables:
-
+```
 sudo iptables-restore < /etc/iptables/rules.v4
-
+```
 Run the policy server:
-
+```
 python policy.py
-
+```
 Test by browsing to the server. http://<your-rp-ip>:5000.
 
 or test the location route: http://<your-rp-ip>:5000/policy/v1/participant/location?protocol=webrtc&remote_address=10.61.0.100. If all is well, you should get something like this:
@@ -192,11 +196,11 @@ Stop the policy test:
 CRTL + c
 
 Create WSGI entry point:
-
+```
 nano ~/policy/wsgi.py
-
+```
 Add:
-
+```python
 from policy import application
 import logging
 import logging.handlers
@@ -221,17 +225,17 @@ application.logger.addHandler(handler)
 
 if __name__ == "__main__":
     application.run()
-
+```
 If you want to test out that WSGI launches the policy, run the below. You should then be able to browse to http://<your-rp-ip>:5000 and see that it works.
-
- uwsgi --socket 0.0.0.0:5000 --protocol=http -w wsgi
-
+```
+uwsgi --socket 0.0.0.0:5000 --protocol=http -w wsgi
+```
 Create a config file for uWSGI:
-
- nano ~/policy/policy.ini
-
+```
+nano ~/policy/policy.ini
+```
 Add:
-
+```
 [uwsgi]
 module = wsgi
 
@@ -243,13 +247,13 @@ chmod-socket = 660
 vacuum = true
 
 die-on-term = true
-
+```
 Create upstart script (policy service)
-
+```
 sudo nano /etc/init/policy.conf
-
+```
 Add:
-
+```
 description "uWSGI server instance configured to serve Pexip policy"
 
 start on runlevel [2345]
@@ -261,37 +265,25 @@ setgid www-data
 env PATH=/home/pexip/policy/policyenv/bin
 chdir /home/pexip/policy
 exec uwsgi --ini policy.ini
-
+```
 If auth is required for policy server:
 
-
+```
 sudo apt-get install apache2-utils
-
-
-
-
-
-
 sudo htpasswd -c /etc/nginx/.htpasswd exampleuser
-
-
-
-
-
-
 
 New password:
 Re-type new password:
 Adding password for user exampleuser
-
-Now uncomment the auth shit in the pexapp config below:
+```
+Now uncomment the auth config in the pexapp config below
 
 Configure Nginx to point to the policy server:
-
+```
 sudo nano /etc/nginx/sites-enabled/pexapp
-
+```
 Add the highlighted bit:
-
+```
 # Redirect HTTP to HTTPS
 server {
     listen 80;
@@ -345,23 +337,24 @@ server {
     location / {
         return 301 /webapp;
     }
-
+```
 Reboot the PR:
-
+```
 sudo reboot
-
+```
 Policy server controls:
-
+```
 sudo start policy
 sudo stop policy
 sudo restart policy
-
+```
 Browse to the policy server:
 
 Note, you will need to ensure that the RP has a valid certificate. See: https://docs.pexip.com/rp_turn/rpturn_replace_certificate.htm
 
 The policy server will send logs to syslog. Locally this will be in /var/log/syslog.
 Example:
+```
 #tail -f /var/log/syslog
 Feb 29 02:26:24 policy policy POLICY SERVER:: Request-ID:  | Matched WEBRTC call with remote address 10.211.55.100 | calling: meet.dennis | from: Dennis
 Feb 29 02:26:24 policy policy POLICY SERVER:: Allocating to Sydney location [IPNetwork('10.211.55.0/24')]
@@ -373,5 +366,5 @@ Feb 29 02:26:24 policy policy POLICY SERVER:: Sending response:
       "primary_overflow_location" : "external"
       }
     }num
-
+```
 More info about uWSGI: https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uwsgi-and-nginx-on-ubuntu-14-04# pexsubnet

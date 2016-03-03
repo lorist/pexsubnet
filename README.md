@@ -59,11 +59,11 @@ none_list = {
 }
 ```
 Create your policy file:
-
+```
 nano policy.py
-
+```
 Example:
-
+```python
 ##You’ll need to make sure that the variables for the CIDR subnet matching are the same as those defined in the subnets.py file. i.e:
 ## syd_match = all_matching_cidrs(matched_addr, syd_list ) matched syd_list in subnets.py
 
@@ -158,7 +158,7 @@ def set_location():
 
 if __name__  ==  '__main__':
     application.run(host = '0.0.0.0')
-
+```
 To test that the app starts, allow port 5000 (for test) and 8443 (for production) in iptables:
 
 sudo nano /etc/iptables/rules.v4

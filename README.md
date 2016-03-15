@@ -1,5 +1,8 @@
-These are my notes on getting a a python flask policy server running on the Pexip RP/TURN server listening on port 8443 in parallel to the normal webapp listening on port 443.
+These are my notes on getting a python flask policy server running on the Pexip RP/TURN server listening on port 8443 in parallel to the normal webapp listening on port 443.
+
 Notes include the nginx config (added to the pexapp file) and everything we need to do to get it have it run as a service and start at boot.
+
+
 Cheers,
 Dennis
 

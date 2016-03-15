@@ -1,9 +1,12 @@
+Policy server that looks up a caller's remote IP in a csv file and allocates a primary and primary_overflow media location associated with the caller's CIDR.
+
 These are my notes on getting a python flask policy server running on the Pexip RP/TURN server listening on port 8443 in parallel to the normal webapp listening on port 443.
 
 Notes include the nginx config (added to the pexapp file) and everything we need to do to get it have it run as a service and start at boot.
 
 
 Cheers,
+
 Dennis
 
 #### Deploy Pexip RP/TURN OVA

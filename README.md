@@ -33,15 +33,17 @@ sudo apt-get install python-pip python-dev
 
 sudo pip install virtualenv
 ```
-Create a folder for the policy:
+Download the policy server:
+
 ```
-mkdir ~/policy
-cd ~/policy
+git clone https://github.com/lorist/pexsubnet.git
 ```
+
 Create virtual environment for the policy:
-
-`virtualenv policyenv`
-
+```
+cd pexsubnet
+virtualenv policyenv
+```
 Activate the virtual environment:
 
 `source policyenv/bin/activate`
@@ -55,105 +57,7 @@ Format:
 primary_location,primary_overflow_location,CIDR
 eg: sydney,melbourne, 10.61.0.0/24
 
-Create your policy file:
-```
-nano policy.py
-```
-Example:
-```python
-import csv
-from netaddr import *
-from flask import Flask
-from flask import request
-from flask import Response
-import re
-import json
 
-application = Flask(__name__)
-
-# locations.csv:
-# sydney,melbourne,10.61.0.0/24
-# melbourne,sydney,10.61.1.0/24
-
-class Location(object):
-    def __init__(self, ip):
-        self.ip = ip
-
-    def findLocation(self):
-      f = open('locations.csv')
-      csv_f = csv.reader(f)
-      for row in csv_f:
-        ip_list = []
-        ip_list.append(row[2])
-        matched = all_matching_cidrs(self.ip, ip_list)
-        if matched:
-          locations_results = []
-          locations_results.extend([row[0], row[1]])
-          return locations_results
-      return None
-
-@application.route('/')
-def hello():
-  application.logger.info('Someone it browsing to policy root..')
-  return "<h1> Pexip location policy sever </h1>"
-
-# @application.route('/policy/v1/service/configuration')
-# @application.route('/policy/v1/participant/avatar')
-@application.route('/policy/v1/participant/location')
-def set_location():
-  call_id = request.args.get('Call-ID', '')
-  rem_addr = request.args.get('remote_address', '')
-  ms_addr = request.args.get('ms-subnet', '')
-  protocol = request.args.get('protocol', '')
-  local_alias = request.args.get('local_alias', '')
-  remote_alias = request.args.get('remote_alias', '')
-  request_id = request.args.get('Request-Id', '')
-  matched_addr = ''
-
-  if protocol == 'mssip':
-    matched_addr = ms_addr
-    application.logger.info('Request-ID: %s | New Skype call from subnet %s | from: %s, calling: %s', request_id, matched_addr, remote_alias, local_alias)
-
-  elif protocol == 'sip' and rem_addr == '10.61.0.111':
-    application.logger.info('New SIP call via the VCS with remote address %s', rem_addr)
-    m = re.match(r'(.+@)(.+)', call_id)
-    if m is not None:
-      matched_addr = m.group(2)
-      application.logger.info('Request-ID: %s | Matched endpoint according to Call-ID: %s | matched address: %s | remote alias: %s | calling: %s', request_id, call_id, matched_addr, remote_alias, local_alias)
-
-    else:
-      matched_addr = '1.1.1.1'
-      application.logger.info('Matched SIP call not coming via VCS.')
-
-  elif protocol == 'webrtc' or 'api' or 'h323':
-    matched_addr = rem_addr
-    application.logger.info('Request-ID: %s | Matched WEBRTC call with remote address %s | calling: %s | from: %s', request_id, matched_addr, local_alias, remote_alias)
-
-  ip_addr = Location(matched_addr) 
-  locations = ip_addr.findLocation()
-
-  if locations:
-    application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
-    config = {"location": locations[0],
-              "primary_overflow_location": locations[1]
-              }
-    result = { 'status': 'success', 'result': config }
-    return json.dumps(result)
-
-  else:
-    application.logger.info('No matching subnet, sending to default location')
-    config = {"location": "default",
-              "primary_overflow_location": "default"
-              }
-    result = { 'status': 'success', 'result': config }
-    return json.dumps(result)
-      
-  application.logger.info('Sending response: %s', result)
-  return Response(response=result, status=200, mimetype="application/json")
-
-if __name__  ==  '__main__':
-    application.run(host = '0.0.0.0')
-```
 To test that the app starts, allow port 5000 (for test) and 8443 (for production) in iptables:
 
 ```
@@ -175,6 +79,7 @@ python policy.py
 Test by browsing to the server. http://<your-rp-ip>:5000.
 
 or test the location route: http://<your-rp-ip>:5000/policy/v1/participant/location?protocol=webrtc&remote_address=10.61.0.100. If all is well, you should get something like this:
+```
     {
     "status" : "success",
     "result" : {
@@ -182,82 +87,23 @@ or test the location route: http://<your-rp-ip>:5000/policy/v1/participant/locat
       "primary_overflow_location" : "external"
       }
     }
-
+```
 Stop the policy test:
 
 CRTL + c
 
-Create WSGI entry point:
-```
-nano ~/policy/wsgi.py
-```
-Add:
-```python
-from policy import application
-import logging
-import logging.handlers
-import socket
 
-###Loggin to syslog:
-class ContextFilter(logging.Filter):
-  hostname = socket.gethostname()
-
-  def filter(self, record):
-    record.hostname = ContextFilter.hostname
-    return True
-
-f = ContextFilter()
-application.logger.addFilter(f)
-handler = logging.handlers.SysLogHandler('/dev/log')
-formatter = logging.Formatter('%(asctime)s %(hostname)s POLICY SERVER:: %(message)s', datefmt='%b %d %H:%M:%S')
-handler.setFormatter(formatter)
-handler.setLevel(logging.INFO)
-f = ContextFilter()
-application.logger.addHandler(handler)
-
-if __name__ == "__main__":
-    application.run()
-```
 If you want to test out that WSGI launches the policy, run the below. You should then be able to browse to http://<your-rp-ip>:5000 and see that it works.
 ```
 uwsgi --socket 0.0.0.0:5000 --protocol=http -w wsgi
 ```
-Create a config file for uWSGI:
-```
-nano ~/policy/policy.ini
-```
-Add:
-```
-[uwsgi]
-module = wsgi
 
-master = true
-processes = 10
 
-socket = policy.sock
-chmod-socket = 660
-vacuum = true
+Copy upstart script (policy service)
+```
+sudo cp policy.conf /etc/init/
+```
 
-die-on-term = true
-```
-Create upstart script (policy service)
-```
-sudo nano /etc/init/policy.conf
-```
-Add:
-```
-description "uWSGI server instance configured to serve Pexip policy"
-
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-setuid pexip
-setgid www-data
-
-env PATH=/home/pexip/policy/policyenv/bin
-chdir /home/pexip/policy
-exec uwsgi --ini policy.ini
-```
 If auth is required for policy server:
 
 ```
@@ -282,7 +128,7 @@ server {
     server_name pex.space 192.168.10.204;
     return 301 https://$host$request_uri;
 }
-# Policy server:
+################## Policy server START ###############################
 server {
     listen 8443 ssl;
     server_name pex.space 192.168.10.204;
@@ -307,6 +153,7 @@ server {
         uwsgi_pass unix:/home/pexip/policy/policy.sock;
     }
 }
+#################Policy server END #########################################
 server {
     listen 443 ssl;
     server_name pex.space 192.168.10.204;

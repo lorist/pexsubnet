@@ -48,7 +48,7 @@ Activate the virtual environment:
 
 Install the bits we need to run this example:
 ```
-pip install uwsgi flask netaddr
+pip install -r requirements.txt
 ```
 Create csv file in the same directory as the policy.py file. 
 Format:

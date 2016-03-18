@@ -4,7 +4,8 @@ from flask import Flask, jsonify, send_from_directory, request, Response,  url_f
 from werkzeug import secure_filename
 import os
 import re
-import json
+# import json
+import simplejson as json
 import socket
 
 application = Flask(__name__)
@@ -114,11 +115,6 @@ def handle_invalid_usage(error):
     response.status_code = error.status_code
     return response
 
-# @application.route('/')
-# def hello():
-#   application.logger.info('Someone is browsing to policy root..')
-#   return "<h1> Pexip location policy sever </h1>"
-
 # @application.route('/policy/v1/service/configuration')
 # @application.route('/policy/v1/participant/avatar')
 @application.route('/policy/v1/participant/location')
@@ -157,22 +153,16 @@ def set_location():
 
   if locations:
     application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
-    config = {"location": locations[0],
-              "primary_overflow_location": locations[1]
-              }
-    result = { 'status': 'success', 'result': config }
-    return json.dumps(result)
+    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': locations[1], 'location': locations[0]}})
+    return result
 
   else:
     application.logger.info('No matching subnet, sending to default location')
-    config = {"location": "default",
-              "primary_overflow_location": "default"
-              }
-    result = { 'status': 'success', 'result': config }
-    return json.dumps(result)
+    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'location': 'default'}})
+    return result
       
   application.logger.info('Sending response: %s', result)
   return Response(response=result, status=200, mimetype="application/json")
 
 if __name__  ==  '__main__':
-    application.run(host = '0.0.0.0')
+    application.run(host = '0.0.0.0', debug=True)

@@ -11,8 +11,8 @@ import socket
 application = Flask(__name__)
 
 # locations.csv:
-# sydney,melbourne,10.61.0.0/24
-# melbourne,sydney,10.61.1.0/24
+# sydney,melbourne,brisbane,10.61.0.0/24
+# melbourne,sydney,brisbane,10.61.1.0/24
 #########Start uploads
 
 # This is the path to the upload directory
@@ -101,11 +101,11 @@ class Location(object):
       csv_f = csv.reader(f)
       for row in csv_f:
         ip_list = []
-        ip_list.append(row[2])
+        ip_list.append(row[3])
         matched = all_matching_cidrs(self.ip, ip_list)
         if matched:
           locations_results = []
-          locations_results.extend([row[0], row[1]])
+          locations_results.extend([row[0], row[1], row[2]])
           return locations_results
       return None
 
@@ -153,16 +153,16 @@ def set_location():
 
   if locations:
     application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
-    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': locations[1], 'location': locations[0]}})
+    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
     return result
 
   else:
     application.logger.info('No matching subnet, sending to default location')
-    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'location': 'default'}})
+    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'secondary_overflow_location': 'default', 'location': 'default'}})
     return result
       
   application.logger.info('Sending response: %s', result)
   return Response(response=result, status=200, mimetype="application/json")
 
 if __name__  ==  '__main__':
-    application.run(host = '0.0.0.0', debug=True)
+    application.run(host = '0.0.0.0')

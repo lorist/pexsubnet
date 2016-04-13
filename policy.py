@@ -119,50 +119,39 @@ def handle_invalid_usage(error):
 # @application.route('/policy/v1/participant/avatar')
 @application.route('/policy/v1/participant/location')
 def set_location():
-  call_id = request.args.get('Call-ID', '')
+  # call_id = request.args.get('Call-ID', '')
   rem_addr = request.args.get('remote_address', '')
   ms_addr = request.args.get('ms-subnet', '')
   protocol = request.args.get('protocol', '')
   local_alias = request.args.get('local_alias', '')
   remote_alias = request.args.get('remote_alias', '')
-  request_id = request.args.get('Request-Id', '')
   matched_addr = ''
 
   if protocol == 'mssip' and ms_addr:
     matched_addr = ms_addr
-    application.logger.info('Request-ID: %s | New Skype call from subnet %s | from: %s, calling: %s', request_id, matched_addr, remote_alias, local_alias)
-
-  elif protocol == 'sip' and rem_addr == '10.61.0.111':
-    application.logger.info('New SIP call via the VCS with remote address %s', rem_addr)
-    m = re.match(r'(.+@)(.+)', call_id)
-    if m is not None:
-      matched_addr = m.group(2)
-      application.logger.info('Request-ID: %s | Matched endpoint according to Call-ID: %s | matched address: %s | remote alias: %s | calling: %s', request_id, call_id, matched_addr, remote_alias, local_alias)
-
-    else:
-      matched_addr = '1.1.1.1'
-      application.logger.info('Matched SIP call not coming via VCS.')
-
-  elif protocol == 'webrtc' or 'api' or 'h323':
+    application.logger.info('New Skype call from subnet %s | from: %s, calling: %s', matched_addr, remote_alias, local_alias)
+  elif protocol == 'webrtc':
     matched_addr = rem_addr
-    application.logger.info('Request-ID: %s | Matched WEBRTC call with remote address %s | calling: %s | from: %s', request_id, matched_addr, local_alias, remote_alias)
-
-
-  ip_addr = Location(matched_addr) 
-  locations = ip_addr.findLocation()
-
-  if locations:
-    application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
-    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
-    return result
-
+    application.logger.info('Matched WEBRTC call with remote address %s | calling: %s | from: %s', matched_addr, local_alias, remote_alias)
   else:
-    application.logger.info('No matching subnet, sending to default location')
-    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'secondary_overflow_location': 'default', 'location': 'default'}})
+    application.logger.info('Matched non Webrtc or MSSIP call from %s', remote_alias)
+    result = jsonify({'status': 'Not providing policy for this call'})
     return result
-      
-  application.logger.info('Sending response: %s', result)
-  return Response(response=result, status=200, mimetype="application/json")
+
+  if matched_addr:
+      ip_addr = Location(matched_addr) 
+      locations = ip_addr.findLocation()
+
+      if locations:
+        application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
+        result = jsonify({'status': 'success', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
+        return result
+
+      else:
+        application.logger.info('No matching subnet, sending to default location')
+        result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'secondary_overflow_location': 'default', 'location': 'default'}})
+        return result
+   return Response(response=result, status=200, mimetype="application/json")
 
 if __name__  ==  '__main__':
-    application.run(host = '0.0.0.0')
+    application.run(host = '0.0.0.0', debug=True)

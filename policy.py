@@ -151,7 +151,7 @@ def set_location():
         application.logger.info('No matching subnet, sending to default location')
         result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'secondary_overflow_location': 'default', 'location': 'default'}})
         return result
-   return Response(response=result, status=200, mimetype="application/json")
+ return Response(response=result, status=200, mimetype="application/json")
 
 if __name__  ==  '__main__':
     application.run(host = '0.0.0.0', debug=True)

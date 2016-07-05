@@ -150,7 +150,7 @@ server {
         #auth_basic “Restricted";
         #auth_basic_user_file /etc/nginx/.htpasswd;
         include uwsgi_params;
-        uwsgi_pass unix:/home/pexip/policy/policy.sock;
+        uwsgi_pass unix:/home/pexip/pexsubnet/policy.sock;
     }
 }
 #################Policy server END #########################################

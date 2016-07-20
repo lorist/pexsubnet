@@ -1,6 +1,4 @@
-#### this branch:
-
-{Includes a service configuration policy to limit bandwidth for callers coming into VMRs via a DMZ/external location}
+> {This branch includes a service configuration policy to limit bandwidth for callers coming into VMRs via a DMZ/external location}
 
 Policy server that looks up a caller's remote IP in a csv file and allocates a primary and primary_overflow media location associated with the caller's CIDR.
 

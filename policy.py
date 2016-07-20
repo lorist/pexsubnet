@@ -187,7 +187,7 @@ def set_bandwidth():
         else:
             result = jsonify({
                             'status' : 'success',
-                            'action' : 'reject'})
+                            'action' : 'continue'})
             return result
 
     else:

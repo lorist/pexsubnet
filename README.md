@@ -1,3 +1,7 @@
+#### this branch:
+
+{Includes a service configuration policy to limit bandwidth for callers coming into VMRs via a DMZ/external location}
+
 Policy server that looks up a caller's remote IP in a csv file and allocates a primary and primary_overflow media location associated with the caller's CIDR.
 
 These are my notes on getting a python flask policy server running on the Pexip RP/TURN server listening on port 8443 in parallel to the normal webapp listening on port 443.

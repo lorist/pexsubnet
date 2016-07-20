@@ -7,13 +7,22 @@ import re
 # import json
 import simplejson as json
 import socket
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 application = Flask(__name__)
 
-# locations.csv:
-# sydney,melbourne,brisbane,10.61.0.0/24
-# melbourne,sydney,brisbane,10.61.1.0/24
-#########Start uploads
+#####locations.csv format:#################
+# sydney,melbourne,brisbane,10.61.0.0/24  #
+# melbourne,sydney,brisbane,10.61.1.0/24  #
+###########################################
+
+#Management node config:
+application.config['MGR_ADDRESS'] = '192.168.10.163'
+application.config['MGR_USER'] = 'admin'
+application.config['MGR_PASSWORD'] = 'yourpassword'
+
+#Start uploads:
 
 # This is the path to the upload directory
 application.config['UPLOAD_FOLDER'] = 'csv/'
@@ -56,9 +65,6 @@ def upload():
 def uploaded_file(filename):
     return send_from_directory(application.config['UPLOAD_FOLDER'],
                                filename)
-
-
-######### End uploads
 
 class InvalidUsage(Exception):
     status_code = 400
@@ -109,13 +115,89 @@ class Location(object):
           return locations_results
       return None
 
+def getVMRurl(alias):
+    # Find the URL for the conference:
+        # Note: only from VMRs, not done for GW calls yet.
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    url = 'https://%s/api/admin/configuration/v1/conference_alias/?alias=%s' % (application.config['MGR_ADDRESS'], alias)
+    response = requests.get(
+        url,
+        auth=(application.config['MGR_USER'], application.config['MGR_PASSWORD']),
+        verify=False
+        )
+    conf = json.loads(response.text)['objects']
+    for c in conf:
+        c_url = c['conference']
+        return c_url
+
+def getVMRconfig(conf_url):
+    # Get the VMR config
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    url = 'https://%s%s' % (application.config['MGR_ADDRESS'], conf_url)
+    print url
+    response = requests.get(
+        url,
+        auth=(application.config['MGR_USER'], application.config['MGR_PASSWORD']),
+        verify=False
+        )
+    vmr_config = json.loads(response.text)
+    return vmr_config
+
 @application.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
-# @application.route('/policy/v1/service/configuration')
+@application.route('/policy/v1/service/configuration')
+def set_bandwidth():
+    local_alias = request.args.get('local_alias', '')
+    location = request.args.get('location', '')
+    remote_alias = request.args.get('remote_alias', '')
+    application.logger.info('Connection request from: %s via location: %s to conference alias: %s', remote_alias, location, local_alias )
+    if location == 'external':
+        conf_url = getVMRurl(local_alias)
+        if conf_url:
+            vmr_config = getVMRconfig(conf_url)
+            application.logger.info('Service config from MGR: %s', vmr_config)
+            result = jsonify({
+                                'status': 'success',
+                                'result': {
+                                            'service_type': vmr_config['service_type'],
+                                            'name': vmr_config['name'],
+                                            'description': vmr_config['description'],
+                                            'service_tag': vmr_config['tag'],
+                                            'pin': vmr_config['pin'],
+                                            'allow_guests': vmr_config['allow_guests'],
+                                            'guest_pin': vmr_config['guest_pin'],
+                                            'max_callrate_in': 576000,
+                                            'max_callrate_out': 576000,
+                                            'participant_limit': vmr_config['participant_limit'],
+                                            'ivr_theme': vmr_config['ivr_theme'],
+                                            'host_view': vmr_config['host_view'],
+                                            'guest_view': vmr_config['guest_view'],
+                                            'call_type': vmr_config['call_type'],
+                                            'force_presenter_into_main': vmr_config['force_presenter_into_main'],
+                                            'mute_all_guests': vmr_config['mute_all_guests']
+                                 }
+                                })
+
+            return result
+
+        else:
+            result = jsonify({
+                            'status' : 'success',
+                            'action' : 'reject'})
+            return result
+
+    else:
+        result = jsonify({
+                        'status' : 'success',
+                        'action' : 'continue'})
+        application.logger.info('Not External, sending back: %s', result)
+        return result
+    return Response(response=result, status=200, mimetype='application/json')
+
 # @application.route('/policy/v1/participant/avatar')
 @application.route('/policy/v1/participant/location')
 def set_location():
@@ -139,7 +221,7 @@ def set_location():
     return result
 
   if matched_addr:
-      ip_addr = Location(matched_addr) 
+      ip_addr = Location(matched_addr)
       locations = ip_addr.findLocation()
 
       if locations:
@@ -151,7 +233,7 @@ def set_location():
         application.logger.info('No matching subnet, sending to default location')
         result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'secondary_overflow_location': 'default', 'location': 'default'}})
         return result
- return Response(response=result, status=200, mimetype="application/json")
+  return Response(response=result, status=200, mimetype="application/json")
 
 if __name__  ==  '__main__':
-    application.run(host = '0.0.0.0', debug=True)
+    application.run(host = '0.0.0.0')

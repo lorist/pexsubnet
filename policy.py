@@ -143,7 +143,7 @@ def set_location():
       matched_addr = '1.1.1.1'
       application.logger.info('Matched SIP call not coming via VCS.')
 
-  elif protocol == 'webrtc' or 'api' or 'h323':
+  elif protocol == 'webrtc' or 'api' or 'h323' or 'rtmp':
     matched_addr = rem_addr
     application.logger.info('Request-ID: %s | Matched WEBRTC call with remote address %s | calling: %s | from: %s', request_id, matched_addr, local_alias, remote_alias)
 

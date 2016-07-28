@@ -212,7 +212,7 @@ def set_location():
   if protocol == 'mssip' and ms_addr:
     matched_addr = ms_addr
     application.logger.info('New Skype call from subnet %s | from: %s, calling: %s', matched_addr, remote_alias, local_alias)
-  elif protocol == 'webrtc':
+  elif protocol == 'webrtc' or 'api' or 'rtmp':
     matched_addr = rem_addr
     application.logger.info('Matched WEBRTC call with remote address %s | calling: %s | from: %s', matched_addr, local_alias, remote_alias)
   else:

@@ -145,7 +145,7 @@ def set_location():
 
       else:
         application.logger.info('No matching subnet, sending to default location')
-        result = jsonify({'status': 'policy.reason.no.match - No matching subnet, sending to default location'})
+        result = jsonify({'status': 'policy.reason.no.subnetmatch - No matching subnet, sending to default location'})
         return result
 
   return Response(response=result, status=200, mimetype="application/json")

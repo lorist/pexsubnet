@@ -140,7 +140,7 @@ def set_location():
 
       if locations:
         application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
-        result = jsonify({'status': 'success', 'policy.reason.matched': 'Sending to location locations[0]', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
+        result = jsonify({'status': 'success', 'policy.reason.matched': 'Sending MSSIP call to location', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
         return result
 
       else:

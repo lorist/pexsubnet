@@ -1,3 +1,3 @@
-sydney,melbourne,brisbane,10.61.0.0/24
-melbourne,sydney,darwin,10.61.1.0/24
-brisbane,sydney,melbourne,10.61.2.0/24
+Sydney,Melbourne,Singapore,10.61.2.0/24
+Melbourne,Sydney,Singapore,10.61.3.0/23
+Singapore,Sydney,Melbourne,10.65.0.0/20

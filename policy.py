@@ -1,6 +1,6 @@
 import csv
 from netaddr import *
-from flask import Flask, jsonify, send_from_directory, request, Response,  url_for, render_template, redirect
+from flask import Flask, jsonify, send_from_directory, request, Response,  url_for, render_template, redirect, abort
 from werkzeug import secure_filename
 import os
 import re
@@ -20,6 +20,13 @@ application.config['UPLOAD_FOLDER'] = 'csv/'
 # These are the extension that we are accepting to be uploaded
 application.config['ALLOWED_EXTENSIONS'] = set(['csv'])
 
+def get_csv():
+    csv_path = 'csv/locations.csv'
+    csv_file = open(csv_path, 'r')
+    csv_obj = csv.DictReader(csv_file)
+    csv_list = list(csv_obj)
+    return csv_list
+    # return csv_obj
 # For a given file, return whether it's an allowed type or not
 def allowed_file(filename):
     return '.' in filename and \
@@ -30,8 +37,21 @@ def allowed_file(filename):
 # value of the operation
 @application.route('/')
 def index():
-    return render_template('index.html')
+    table_rows = get_csv()
+    return render_template('index.html', table_rows=table_rows)
 
+# Route that will render file upload form
+@application.route('/csv')
+def csv_up():
+    return render_template('csv.html')
+@application.route('/csv/<row_id>/')
+def detail(row_id):
+    template = 'csv_edit.html'
+    object_list = get_csv()
+    for row in object_list:
+        if row['id'] == row_id:
+            return render_template(template, object=row)
+    abort(404)
 
 # Route that will process the file upload
 @application.route('/upload', methods=['POST'])
@@ -99,13 +119,15 @@ class Location(object):
     def findLocation(self):
       f = open('csv/locations.csv')
       csv_f = csv.reader(f)
+    #   csv_f = csv.reader(f)
+      next(csv_f, None)  # skip the headers
       for row in csv_f:
         ip_list = []
-        ip_list.append(row[3])
+        ip_list.append(row[4])
         matched = all_matching_cidrs(self.ip, ip_list)
         if matched:
           locations_results = []
-          locations_results.extend([row[0], row[1], row[2]])
+          locations_results.extend([row[1], row[2], row[3]])
           return locations_results
       return None
 
@@ -119,50 +141,36 @@ def handle_invalid_usage(error):
 # @application.route('/policy/v1/participant/avatar')
 @application.route('/policy/v1/participant/location')
 def set_location():
-  call_id = request.args.get('Call-ID', '')
   rem_addr = request.args.get('remote_address', '')
   ms_addr = request.args.get('ms-subnet', '')
   protocol = request.args.get('protocol', '')
   local_alias = request.args.get('local_alias', '')
   remote_alias = request.args.get('remote_alias', '')
-  request_id = request.args.get('Request-Id', '')
   matched_addr = ''
 
   if protocol == 'mssip' and ms_addr:
     matched_addr = ms_addr
-    application.logger.info('Request-ID: %s | New Skype call from subnet %s | from: %s, calling: %s', request_id, matched_addr, remote_alias, local_alias)
-
-  elif protocol == 'sip' and rem_addr == '10.61.0.111':
-    application.logger.info('New SIP call via the VCS with remote address %s', rem_addr)
-    m = re.match(r'(.+@)(.+)', call_id)
-    if m is not None:
-      matched_addr = m.group(2)
-      application.logger.info('Request-ID: %s | Matched endpoint according to Call-ID: %s | matched address: %s | remote alias: %s | calling: %s', request_id, call_id, matched_addr, remote_alias, local_alias)
-
-    else:
-      matched_addr = '1.1.1.1'
-      application.logger.info('Matched SIP call not coming via VCS.')
-
-  elif protocol == 'webrtc' or 'api' or 'h323' or 'rtmp':
-    matched_addr = rem_addr
-    application.logger.info('Request-ID: %s | Matched WEBRTC call with remote address %s | calling: %s | from: %s', request_id, matched_addr, local_alias, remote_alias)
-
-
-  ip_addr = Location(matched_addr) 
-  locations = ip_addr.findLocation()
-
-  if locations:
-    application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
-    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
-    return result
-
+    application.logger.info('New Skype call from subnet %s | from: %s, calling: %s', matched_addr, remote_alias, local_alias)
   else:
-    application.logger.info('No matching subnet, sending to default location')
-    result = jsonify({'status': 'success', 'result': {'primary_overflow_location': 'default', 'secondary_overflow_location': 'default', 'location': 'default'}})
+    application.logger.info('Matched non MSSIP call from %s. Not providing a location', remote_alias)
+    result = jsonify({'status': 'policy.reason.no.mssip - Not providing policy for this call'})
     return result
-      
-  application.logger.info('Sending response: %s', result)
+
+  if matched_addr:
+      ip_addr = Location(matched_addr)
+      locations = ip_addr.findLocation()
+
+      if locations:
+        application.logger.info('Allocating to location %s and overflow %s', locations[0], locations[1])
+        result = jsonify({'status': 'success', 'policy.reason.matched': 'Sending MSSIP call to location', 'result': {'primary_overflow_location': locations[1], 'secondary_overflow_location': locations[2], 'location': locations[0]}})
+        return result
+
+      else:
+        application.logger.info('No matching subnet, sending to default location')
+        result = jsonify({'status': 'policy.reason.no.subnetmatch - No matching subnet, sending to default location'})
+        return result
+
   return Response(response=result, status=200, mimetype="application/json")
 
 if __name__  ==  '__main__':
-    application.run(host = '0.0.0.0')
+    application.run(host = '0.0.0.0', debug=True)

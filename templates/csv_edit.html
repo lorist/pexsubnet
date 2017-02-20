@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+  <h2>Location Rule</h2>
+  <table border=1 cellpadding=7>
+      <tr>
+          <th>Primary location</th>
+          <th>Primary overflow location</th>
+          <th>Seconday overflow location</th>
+          <th>Subnet</th>
+      </tr>
+      <tr>
+        <td>{{object.loc}}</td>
+        <td>{{object.pover}}</td>
+        <td>{{object.sover}}</td>
+        <td>{{object.snet}}</td>
+      </tr>
+
+
+  </table>
+</div>
+{% endblock %}

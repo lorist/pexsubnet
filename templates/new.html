@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+  {%- for message in get_flashed_messages() %}
+        {{ message }}
+     {%- endfor %}
+<h3>New Location</h3>
+
+<form action = "{{ request.path }}" method = "post">
+   <label for = "loc">Primary Location</label><br>
+   <input type = "text" name = "loc"/><br>
+
+   <label for = "primay_over">	Primary Overflow Location</label><br>
+   <input type = "text" name = "primay_over" /><br>
+
+   <label for = "second_over">Seconday Overflow Location</label><br>
+   <input type  = "text" name = "second_over"/><br>
+
+   <label for = "snet">Subnet</label><br>
+   <input type = "text" name = "snet"/><br>
+
+   <input type = "submit" value = "Submit" />
+</form>
+
+</div>
+
+{% endblock %}

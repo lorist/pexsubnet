@@ -2,27 +2,10 @@
 {% block content %}
 
 <div class="container">
-  <h2>Overview</h2>
-  This policy server is designed to provide a response to Pexip conference nodes with a Pexip location when a Skype for Business or Lync caller
-  dials into a Pexip conference or Virtual Reception.<br/>
-  <h3>How it works</h3>
-  When a call is placed and reaches a Pexip conference node that belongs to a location which is configured to query this policy server,
-  a participant location <a target="_blank" href="https://docs.pexip.com/admin/external_policy_requests.htm?Highlight=Media%20location">request</a>
-  is sent to this server.<br/>
-  The policy server will then lookup the subnet to which the Skype or Lync user belongs and attempts to find a match in a CSV file that is uploaded via this page.
-  <br /><br /><p>
-  The CSV should contain 4 rows and include the following per match you wish to make:
-  <ul>
-    <li>Primary location name</li>
-    <li>Primary overflow location name</li>
-    <li>Seconday overflow location name</li>
-    <li>Subnet (including mask. i.e. 10.61.0.0/24)</li>
-  </ul>
-</p>
-If a match is acheived then a response containing the location information for that particular call is sent back to the conference node that sent the request
-and media for that call is handled by the relevant location(s).
-
-<h2>Current Locations CSV</h2>
+  {%- for message in get_flashed_messages() %}
+        {{ message }}
+     {%- endfor %}
+<h3>Locations (<a href="/new">add new</a>)</h3>
 <table border=1 cellpadding=7>
     <tr>
         <th>Primary location</th>
@@ -30,16 +13,15 @@ and media for that call is handled by the relevant location(s).
         <th>Seconday overflow location</th>
         <th>Subnet</th>
     </tr>
-    {% for row in table_rows %}
+    {% for entry in locations %}
     <tr>
-      <td>{{row.loc}}</td>
-      <td>{{row.pover}}</td>
-      <td>{{row.sover}}</td>
-      <td><a href="/csv/{{ row.id }}/">{{ row.snet }}</a></td>
-      <!-- <td>{{row.snet}}</td> -->
+      <td>{{entry.loc}}</td>
+      <td>{{entry.primay_over}}</td>
+      <td>{{entry.second_over}}</td>
+      <td>{{entry.snet}}</td>
+
     </tr>
     {% endfor %}
-
 </table>
 </div>
     <!-- <div class="container">
